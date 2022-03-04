@@ -29,9 +29,8 @@ const getEthereumContract = () => {
 export const TransactionProvider = ({ children }: any) => {
 
     const [currentAccount, setCurrentAccount] = useState('');
-    const [formData, setFormData] = useState({ addressTo: '', amount: '', message: '', keyword: ''});
+    const [formData, setFormData] = useState({ addressTo: '', amount: ''});
     const [isLoading, setLoading] = useState(false);
-    const [transactionCount, settransactionCount] = useState(0);
 
     const handleChange = (e: any, name: string) => {
         setFormData((prevstate) => ({ ...prevstate, [name]: e.target.value }));
@@ -43,10 +42,10 @@ export const TransactionProvider = ({ children }: any) => {
                 return alert('Please Install Metamask');
             }
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-            console.log(accounts)
     
             if (accounts.length) {
                 setCurrentAccount(accounts[0]);
+                console.log(accounts)
             } else {
                 console.log('No Accounts Found')
             }
@@ -76,7 +75,10 @@ export const TransactionProvider = ({ children }: any) => {
             if (!window.ethereum) {
                 return alert('Please Install Metamask');
             }
-            const { addressTo, amount, keyword, message } = formData;
+            if (!currentAccount) {
+                return alert('Please Connect Wallet');
+            }
+            const { addressTo, amount } = formData;
             const transactionContract = getEthereumContract();
             const parsedAmount = ethers.utils.parseEther(amount);
 
@@ -90,18 +92,17 @@ export const TransactionProvider = ({ children }: any) => {
                 }],
             });
 
-            const transactionHash = await transactionContract.addToBlockChain(addressTo, parsedAmount, message, keyword);
+            const transactionHash = await transactionContract.addToBlockChain(addressTo, parsedAmount);
             setLoading(true);
             console.log(`Loading - ${transactionHash.hash}`)
             await transactionHash.wait();
             setLoading(false);
             console.log(`Success - ${transactionHash.hash}`)
 
-            const transactionCount = await transactionContract.getTransactionCount();
-            settransactionCount(transactionCount.toNumber());
-
-        } catch (error) {
-            console.log(error)
+        } catch (error: any) {
+            if (error.code === -32606 || error.message === 'Invalid \"to\" address.') {
+                return alert('Please Check Address To');
+            }
         }
     }
 
@@ -110,7 +111,7 @@ export const TransactionProvider = ({ children }: any) => {
     }, [])
 
     return (
-        <TransactionContext.Provider value = {{ connectWallet, currentAccount, formData, setFormData, handleChange, sendTransaction }}>
+        <TransactionContext.Provider value = {{ connectWallet, currentAccount, formData, setFormData, handleChange, sendTransaction, isLoading }}>
             { children }
         </TransactionContext.Provider>
     )

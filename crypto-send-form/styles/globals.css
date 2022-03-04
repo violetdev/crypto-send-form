@@ -18,3 +18,9 @@ a {
 * {
   box-sizing: border-box;
 }
+
+
+input:not(:placeholder-shown) ~ span {
+    top: -58px !important;
+    font-size: 0.75rem;
+}
